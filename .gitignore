@@ -18,3 +18,8 @@ compile_commands.json
 # misc
 .DS_Store
 EOF
+
+# ignore archives
+*.tgz
+*.tar.gz
+*.zip

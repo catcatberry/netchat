@@ -1,0 +1,20 @@
+cat > .gitignore <<'EOF'
+# build & cmake
+/build/
+/build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# objects & libs
+*.o
+*.a
+*.so
+*.dll
+*.dylib
+
+# misc
+.DS_Store
+EOF

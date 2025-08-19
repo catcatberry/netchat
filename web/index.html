@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>netchat</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "PingFang SC", "Noto Sans SC", Arial, sans-serif; margin: 0; background:#0b1020; color:#eaf2ff;}
+    header { padding:16px; font-weight:700; border-bottom:1px solid #152040;}
+    .wrap { display:flex; flex-direction:column; height: calc(100vh - 60px);}
+    #messages { flex:1; overflow:auto; padding:16px;}
+    .msg { margin:6px 0; padding:8px 10px; border-radius:10px; background:#121a36; }
+    .sys { opacity:.8; font-style:italic; }
+    form { display:flex; gap:8px; padding:12px; border-top:1px solid #152040; }
+    input, button { padding:10px 12px; border-radius:10px; border:1px solid #243257; background:#0f1730; color:#eaf2ff;}
+    input:focus { outline:none; border-color:#3e63dd; }
+    button { cursor:pointer; }
+    .topbar { display:flex; gap:12px; align-items:center; }
+    .pill { font-size:12px; padding:4px 8px; border:1px solid #243257; border-radius:999px;}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <div>💬 netchat</div>
+      <div id="room-pill" class="pill"></div>
+    </div>
+  </header>
+  <div class="wrap">
+    <div id="messages"></div>
+    <form id="f">
+      <input id="name" placeholder="昵称（默认 Guest）" style="width: 30ch;">
+      <input id="input" placeholder="输入消息，回车发送" style="flex:1;">
+      <button>发送</button>
+    </form>
+  </div>
+  <script>
+    function getRoomFromURL() {
+      const p = location.pathname.split("/").filter(Boolean);
+      if (p[0]==="room" && p[1]) return p[1];
+      return "lobby";
+    }
+    const room = getRoomFromURL();
+    document.getElementById("room-pill").textContent = `房间：${room}`;
+    const msgBox = document.getElementById("messages");
+    function addMsg(text, cls="") {
+      const div = document.createElement("div");
+      div.className = "msg "+cls;
+      div.textContent = text;
+      msgBox.appendChild(div);
+      msgBox.scrollTop = msgBox.scrollHeight;
+    }
+
+    let ws;
+    function connect() {
+      const proto = location.protocol === "https:" ? "wss" : "ws";
+      const name = encodeURIComponent(document.getElementById("name").value.trim() || "Guest");
+      const url = `${proto}://${location.host}/ws?room=${encodeURIComponent(room)}&name=${name}`;
+      ws = new WebSocket(url);
+      ws.onopen = () => addMsg("[系统] 已连接到服务器", "sys");
+      ws.onmessage = (ev) => addMsg(ev.data);
+      ws.onclose = () => addMsg("[系统] 连接已关闭", "sys");
+      ws.onerror = () => addMsg("[系统] 出错，请重试", "sys");
+    }
+    connect();
+
+    document.getElementById("f").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const v = document.getElementById("input").value.trim();
+      if (!v || !ws || ws.readyState !== WebSocket.OPEN) return;
+      ws.send(v);
+      document.getElementById("input").value = "";
+    });
+
+    // 用户修改昵称后重连
+    document.getElementById("name").addEventListener("change", () => {
+      if (ws) try { ws.close(); } catch {}
+      connect();
+    });
+  </script>
+</body>
+</html>
